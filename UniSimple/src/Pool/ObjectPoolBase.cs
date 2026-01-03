@@ -2,18 +2,36 @@
 
 namespace UniSimple.Pool
 {
-    // 对象池基类
-    public abstract class ObjectPoolBase<T> : IObjectPool<T> where T : class
+    // 对象池接口
+    public interface IObjectPool<T> where T : class
     {
-        protected readonly Stack<T> InactiveItems = new Stack<T>();
-        protected readonly HashSet<T> ActiveItems = new HashSet<T>();
+        T Get();
+        void Release(T item);
+        void Prewarm(int count);
+        int TotalCount { get; }
+        int ActiveCount { get; }
+        int InactiveCount { get; }
+        void Clear();
+    }
+
+    // 对象池接口 非泛型
+    public interface IObjectPool
+    {
+        void Clear();
+    }
+
+    // 对象池基类
+    public abstract class ObjectPoolBase<T> : IObjectPool<T>, IObjectPool where T : class
+    {
+        private readonly Stack<T> _inactiveItems = new();
+        private readonly HashSet<T> _activeItems = new();
 
         private readonly int _limitSize;
         private readonly bool _autoExpand;
 
-        public int TotalCount => ActiveItems.Count + InactiveItems.Count;
-        public int ActiveCount => ActiveItems.Count;
-        public int InactiveCount => InactiveItems.Count;
+        public int TotalCount => _activeItems.Count + _inactiveItems.Count;
+        public int ActiveCount => _activeItems.Count;
+        public int InactiveCount => _inactiveItems.Count;
 
         protected ObjectPoolBase(int limitSize = 100, bool autoExpand = true)
         {
@@ -30,9 +48,9 @@ namespace UniSimple.Pool
         {
             T item = null;
 
-            if (InactiveItems.Count > 0)
+            if (_inactiveItems.Count > 0)
             {
-                item = InactiveItems.Pop();
+                item = _inactiveItems.Pop();
             }
             else if (_autoExpand || TotalCount < _limitSize)
             {
@@ -41,7 +59,7 @@ namespace UniSimple.Pool
 
             if (item != null)
             {
-                ActiveItems.Add(item);
+                _activeItems.Add(item);
                 OnGetItem(item);
 
                 if (item is IPoolable poolable)
@@ -58,25 +76,35 @@ namespace UniSimple.Pool
             if (item == null)
                 return;
 
-            if (item is IPoolable poolable)
+            if (!_activeItems.Remove(item))
             {
-                poolable.OnDespawn();
+                UnityEngine.Debug.LogWarning($"Release {item} not in pool");
+                return;
+            }
+
+            if (item is IPoolable poolable1)
+            {
+                poolable1.OnDespawn();
             }
 
             OnReleaseItem(item);
-            ActiveItems.Remove(item);
 
-            if (InactiveItems.Count < _limitSize)
+            if (_inactiveItems.Count < _limitSize)
             {
-                InactiveItems.Push(item);
+                _inactiveItems.Push(item);
             }
             else
             {
+                if (item is IPoolable poolable2)
+                {
+                    poolable2.OnDestroy();
+                }
+
                 DestroyItem(item);
             }
         }
 
-        public void Prewarm(int count)
+        public virtual void Prewarm(int count)
         {
             for (int i = 0; i < count; i++)
             {
@@ -84,14 +112,17 @@ namespace UniSimple.Pool
                     break;
 
                 var item = CreateItem();
+                if (item == null)
+                    continue;
+
                 OnReleaseItem(item);
-                InactiveItems.Push(item);
+                _inactiveItems.Push(item);
             }
         }
 
         public virtual void Clear()
         {
-            foreach (var item in ActiveItems)
+            foreach (var item in _activeItems)
             {
                 if (item is IPoolable poolable)
                 {
@@ -101,7 +132,7 @@ namespace UniSimple.Pool
                 DestroyItem(item);
             }
 
-            foreach (var item in InactiveItems)
+            foreach (var item in _inactiveItems)
             {
                 if (item is IPoolable poolable)
                 {
@@ -111,8 +142,8 @@ namespace UniSimple.Pool
                 DestroyItem(item);
             }
 
-            ActiveItems.Clear();
-            InactiveItems.Clear();
+            _activeItems.Clear();
+            _inactiveItems.Clear();
         }
     }
 }

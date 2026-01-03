@@ -3,20 +3,20 @@
 namespace UniSimple.Pool
 {
     // C#类对象池
-    public class ClassPool<T> : ObjectPoolBase<T> where T : class, new()
+    public sealed class ClassPool<T> : ObjectPoolBase<T> where T : class, new()
     {
         private readonly Func<T> _createFunc;
         private readonly Action<T> _resetAction;
 
         public ClassPool(
-            Func<T> createFunc = null,
+            Func<T> createFunc,
             Action<T> resetAction = null,
             int initialSize = 10,
             int limitSize = 100,
             bool autoExpand = true)
             : base(limitSize, autoExpand)
         {
-            _createFunc = createFunc ?? (() => new T());
+            _createFunc = createFunc;
             _resetAction = resetAction;
             Prewarm(initialSize);
         }
