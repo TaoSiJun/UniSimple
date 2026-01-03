@@ -4,6 +4,8 @@
     {
         void OnCreate();
 
+        void OnUpdate(float deltaTime);
+
         void OnDestroy();
 
         /// <summary>
@@ -52,6 +54,10 @@
         public virtual int Priority => 0;
 
         public virtual void OnCreate()
+        {
+        }
+
+        public virtual void OnUpdate(float deltaTime)
         {
         }
 

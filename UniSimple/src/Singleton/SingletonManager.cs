@@ -14,29 +14,13 @@ namespace UniSimple.Singleton
         // 标记是否在清理中
         public static bool IsShuttingDown { get; private set; }
 
-        private static bool _initialized;
-
-        public static void Initialize()
-        {
-            if (_initialized)
-                return;
-
-            var go = new UnityEngine.GameObject("SingletonDriver");
-            go.AddComponent<SingletonDriver>();
-            UnityEngine.Object.DontDestroyOnLoad(go);
-            _initialized = true;
-        }
-
-        public static void Register(ISingleton singleton)
+        internal static void Register(ISingleton singleton)
         {
             if (IsShuttingDown)
                 return;
 
             if (AllSingletonList.Contains(singleton))
                 return;
-
-            if (!_initialized)
-                UnityEngine.Debug.LogWarning($"[SingletonManager] First invoke the 'Initialize()', before register {singleton.GetType().Name} singleton");
 
             AllSingletonList.Add(singleton);
             AllSingletonList.Sort((a, b) => b.Priority.CompareTo(a.Priority));
@@ -48,7 +32,7 @@ namespace UniSimple.Singleton
             }
         }
 
-        public static void Update(float deltaTime)
+        internal static void Update(float deltaTime)
         {
             if (IsShuttingDown)
                 return;
@@ -66,7 +50,7 @@ namespace UniSimple.Singleton
             }
         }
 
-        public static void DestroyAll()
+        internal static void DestroyAll()
         {
             IsShuttingDown = true;
 
