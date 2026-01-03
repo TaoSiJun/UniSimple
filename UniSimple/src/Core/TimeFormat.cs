@@ -26,6 +26,7 @@ namespace UniSimple
             var seconds = remainder % 60;
 
             var sb = Builder;
+            sb.Clear();
 
             // 如果大于1天
             if (days > 0)
@@ -56,6 +57,11 @@ namespace UniSimple
         public static string FormatSeconds(this int totalSeconds)
         {
             return FormatSeconds((long)totalSeconds);
+        }
+
+        public static string FormatMilliseconds(this int milliseconds)
+        {
+            return FormatMilliseconds((long)milliseconds);
         }
 
         public static string FormatMilliseconds(this long milliseconds)
