@@ -26,9 +26,7 @@ namespace UniSimple.Machine
             }
             catch (Exception e)
             {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
                 UnityEngine.Debug.LogError($"[StateMachine] Transition condition error: {e}");
-#endif
                 return false;
             }
         }

@@ -21,8 +21,9 @@
     /// </summary>
     public abstract class Singleton<T> : ISingleton where T : Singleton<T>, new()
     {
+        private static object _lock = new();
+
         private static T _instance;
-        private static readonly object _lock = new();
 
         public static T Instance
         {
