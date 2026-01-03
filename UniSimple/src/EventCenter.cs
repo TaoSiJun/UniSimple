@@ -11,11 +11,8 @@ namespace UniSimple.Core
         private static readonly Dictionary<string, Delegate> Events = new();
         private static readonly Dictionary<object, List<(string, Delegate)>> OwnerEvents = new();
 
-        // 编辑器下用于调试：记录事件监听数量
-#if UNITY_EDITOR
         public static int EventCount => Events.Count;
         public static int OwnerCount => OwnerEvents.Count;
-#endif
 
         #region 无参数事件
 

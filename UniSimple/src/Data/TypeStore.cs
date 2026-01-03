@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace UniSimple.Core
+namespace UniSimple.Data
 {
     internal interface IValueContainer
     {
