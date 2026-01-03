@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -315,10 +316,7 @@ namespace UniSimple.YooAsset
             }
 
             // 按最后访问时间排序
-            candidates.Sort((a, b) =>
-            {
-                return a.Value.LastAccessTime.CompareTo(b.Value.LastAccessTime);
-            });
+            candidates.Sort((a, b) => { return a.Value.LastAccessTime.CompareTo(b.Value.LastAccessTime); });
 
             // 清理最久未使用的资源
             var removeCount = Math.Min(candidates.Count, HandleCache.Count - MAX_CACHE_SIZE + 10); // 多清理10个，留出空间
@@ -334,23 +332,6 @@ namespace UniSimple.YooAsset
         {
             _lastLruCheckTime = -1f; // 强制下次检查执行清理
             CheckLru();
-        }
-
-        /// <summary>
-        /// 获取缓存信息
-        /// </summary>
-        public static void GetCacheInfo(out int totalCount, out int usedCount)
-        {
-            totalCount = HandleCache.Count;
-            usedCount = 0;
-
-            foreach (var wrapper in HandleCache.Values)
-            {
-                if (wrapper.RefCount > 0)
-                {
-                    usedCount++;
-                }
-            }
         }
 
         /// <summary>
@@ -372,6 +353,17 @@ namespace UniSimple.YooAsset
             }
 
             return 0;
+        }
+
+        public static string DebugInfo()
+        {
+            var sb = new StringBuilder($"YooAsset handle cache: Total={HandleCache.Count} |");
+            foreach (var kvp in HandleCache)
+            {
+                sb.Append($" {kvp.Key}={kvp.Value.RefCount}");
+            }
+
+            return sb.ToString();
         }
     }
 }

@@ -291,23 +291,23 @@ namespace UniSimple.YooAsset
         public static string DebugInfo()
         {
             var builder = new StringBuilder();
-            builder.AppendLine("Atlas:");
+            builder.Append("Atlas:");
             foreach (var kvp in AtlasCache)
             {
-                builder.Append($" {kvp.Key} ({kvp.Value.RefCount})");
+                builder.Append($" {kvp.Key}={kvp.Value.RefCount}");
             }
 
-            builder.AppendLine("Sprites:");
+            builder.Append(" Sprites:");
             foreach (var kvp in SpritesCache)
             {
-                builder.Append($" {kvp.Key}:");
+                builder.Append($" {kvp.Key}=");
                 foreach (var name in kvp.Value.Keys)
                 {
-                    builder.Append($" [{name}]");
+                    builder.Append($"{name} ");
                 }
             }
 
-            builder.AppendLine($"Loading: {LoadingUcs.Count}");
+            builder.Append($" Loading: {LoadingUcs.Count}");
             return builder.ToString();
         }
     }
