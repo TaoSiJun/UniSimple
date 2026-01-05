@@ -18,7 +18,7 @@ namespace UniSimple.UI
 
     public abstract class UIBase
     {
-        public UIState State { get; set; } = UIState.None;
+        public UIState State { get; internal set; } = UIState.None;
 
         protected int Layer { get; } = LayerMask.NameToLayer("UI");
 
@@ -40,7 +40,7 @@ namespace UniSimple.UI
 
         // ---------- 游戏对象 ----------
 
-        public GameObject GameObject { get; set; }
+        public GameObject GameObject { get; internal set; }
         public Transform Transform => GameObject?.transform;
 
         // ---------- 生命周期 ----------

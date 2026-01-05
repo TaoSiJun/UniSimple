@@ -25,6 +25,8 @@ namespace UniSimple.UI
         // 需要更新的列表
         private readonly List<IUpdatable> _updateList = new(100);
 
+        private readonly GameObject _uiRoot;
+
         // 打开事件
         public event Action<Type> OnOpened;
 
@@ -38,6 +40,7 @@ namespace UniSimple.UI
             _modalController = new UIModalController(uiRoot, mask);
             _navigation = new UINavigation();
             _windowCache = new UIWindowCache();
+            _uiRoot = uiRoot;
         }
 
         /// <summary>
@@ -45,14 +48,22 @@ namespace UniSimple.UI
         /// </summary>
         public async UniTask PreloadAsync<T>(int count = 1) where T : UIBase, new()
         {
-            var tasks = new List<UniTask<T>>(count);
+            var instances = new List<T>(count);
+
             for (var i = 0; i < count; i++)
             {
-                var task = _assetLoader.GetOrCreateAsync<T>();
-                tasks.Add(task);
+                var instance = await _assetLoader.GetOrCreateAsync<T>();
+                if (instance != null)
+                {
+                    instances.Add(instance);
+                }
             }
 
-            await UniTask.WhenAll(tasks);
+            // 预加载完成后放入池中
+            foreach (var instance in instances)
+            {
+                _assetLoader.Recycle(instance);
+            }
         }
 
         #region Window
@@ -65,17 +76,24 @@ namespace UniSimple.UI
             var type = typeof(T);
             T window;
 
-            if (_windowCache.TryGetOpened(type, out var opened))
+            if (_windowCache.Opened.TryGetValue(type, out var opened))
             {
                 window = (T)opened;
             }
-            else if (_windowCache.TryRemoveCached(type, out var cached))
+
+            if (_windowCache.Cached.Remove(type, out var cached))
             {
                 window = (T)cached;
             }
             else
             {
                 window = await _assetLoader.GetOrCreateAsync<T>();
+                if (window == null)
+                {
+                    throw new Exception($"Open error: {type.Name} is null");
+                }
+
+                window.Transform.SetParent(_uiRoot.transform, false);
                 window.CloseAction = () => CloseAsync<T>().Forget();
 
                 if (window is IUpdatable updatable)
@@ -84,23 +102,10 @@ namespace UniSimple.UI
                 }
             }
 
-            if (window == null)
-            {
-                throw new Exception($"Open error: {type.Name} is null");
-            }
-
-            if (window.State == UIState.Opened)
-            {
-                window.OnOpen(param);
-                _layerController.AddToLayer(window);
-                _modalController.ShowMask(window);
-                return window;
-            }
-
             if (window.State == UIState.Opening)
             {
                 await UniTask.WaitUntil(() => window.State == UIState.Opened);
-                window.OnOpen(param);
+                _layerController.MoveToTop(window);
                 return window;
             }
 
@@ -115,7 +120,6 @@ namespace UniSimple.UI
             try
             {
                 await window.OpenAnimationAsync();
-                await UniTask.Yield();
             }
             catch (Exception e)
             {
@@ -126,7 +130,7 @@ namespace UniSimple.UI
             window.State = UIState.Opened;
 
             _navigation.Push(window); // 处理堆栈
-            _windowCache.TryAddOpened(type, window); // 缓存打开的
+            _windowCache.Opened.TryAdd(type, window); // 缓存打开的
 
             OnOpened?.Invoke(type);
             return window;
@@ -180,7 +184,7 @@ namespace UniSimple.UI
                 return;
             }
 
-            if (_windowCache.TryRemoveOpened(type, out var window))
+            if (_windowCache.Opened.Remove(type, out var window))
             {
                 if (window is IUpdatable updatable)
                 {
@@ -195,7 +199,6 @@ namespace UniSimple.UI
                     try
                     {
                         await window.CloseAnimationAsync();
-                        await UniTask.Yield();
                     }
                     catch (Exception e)
                     {
@@ -217,11 +220,10 @@ namespace UniSimple.UI
                 if (window.DestroyWhenClose)
                 {
                     _assetLoader.Destroy(window);
-                    window.InternalDestroy();
                 }
                 else
                 {
-                    _windowCache.TryAddCached(type, window); // 缓存关闭的
+                    _windowCache.Cached.TryAdd(type, window); // 缓存关闭的
                 }
             }
         }
@@ -291,7 +293,7 @@ namespace UniSimple.UI
         /// </summary>
         public T Get<T>() where T : UIWindow
         {
-            if (_windowCache.TryGetOpened(typeof(T), out var window))
+            if (_windowCache.Opened.TryGetValue(typeof(T), out var window))
             {
                 return (T)window;
             }
@@ -329,8 +331,8 @@ namespace UniSimple.UI
             widget.State = UIState.Opened;
 
             // 绑定生命周期
-            widget.Bind(owner);
             widget.RecycleAction = () => RecycleWidget(widget);
+            widget.Bind(owner);
             return widget;
         }
 

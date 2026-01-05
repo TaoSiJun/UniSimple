@@ -129,10 +129,12 @@ namespace UniSimple.UI
             CanvasGroup = GameObject.TryGetComponent<CanvasGroup>(out var group) ? group : GameObject.AddComponent<CanvasGroup>();
 
             // 处理交互
-            if (!GameObject.TryGetComponent<GraphicRaycaster>(out _))
+            if (!GameObject.TryGetComponent<GraphicRaycaster>(out var raycaster))
             {
-                Raycaster = GameObject.AddComponent<GraphicRaycaster>();
+                raycaster = GameObject.AddComponent<GraphicRaycaster>();
             }
+
+            Raycaster = raycaster;
         }
 
         #endregion

@@ -39,7 +39,7 @@ namespace UniSimple.UI
             var cts = new CancellationTokenSource();
             _cancelTokenSource[type] = cts;
 
-            var task = InternalCreateAsync<T>(cts.Token);
+            var task = InternalCreateAsync<T>(cts.Token).Preserve();
             _loading[type] = task;
 
             try
@@ -137,25 +137,32 @@ namespace UniSimple.UI
         {
             InternalCreateRoot();
 
-            var ui = new T()
-            {
-                State = UIState.Loading
-            };
+            var ui = new T { State = UIState.Loading };
             var handle = YooAssets.LoadAssetAsync<GameObject>(ui.Setting.Address);
-            await handle.ToUniTask(cancellationToken: token);
-            if (handle.Status != EOperationStatus.Succeed)
+
+            try
             {
-                handle.Release();
-                throw new Exception($"Failed to load {ui.Setting.Address}.");
+                await handle.ToUniTask(cancellationToken: token);
+                if (handle.Status != EOperationStatus.Succeed)
+                {
+                    throw new Exception($"Failed to load {ui.Setting.Address}.");
+                }
+
+                token.ThrowIfCancellationRequested();
+
+                ui.GameObject = Object.Instantiate(handle.AssetObject as GameObject);
+                ui.InternalCreate();
+                ui.OnCreate();
+
+                _handle[ui] = handle;
+                return ui;
             }
-
-            // 这里只做实例化 GameObject
-            ui.GameObject = Object.Instantiate(handle.AssetObject as GameObject);
-            ui.InternalCreate();
-            ui.OnCreate();
-
-            _handle[ui] = handle;
-            return ui;
+            catch
+            {
+                if (ui.GameObject != null) Object.Destroy(ui.GameObject);
+                handle?.Release();
+                throw;
+            }
         }
 
         private static void InternalCreateRoot()

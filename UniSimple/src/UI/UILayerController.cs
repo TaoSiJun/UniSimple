@@ -51,6 +51,19 @@ namespace UniSimple.UI
             RefreshOrder(layer);
         }
 
+        public void MoveToTop(UIWindow ui)
+        {
+            var layer = ui.Setting.Layer;
+            if (_layers.TryGetValue(layer, out var list))
+            {
+                if (list.Remove(ui))
+                {
+                    list.Add(ui);
+                    RefreshOrder(layer);
+                }
+            }
+        }
+
         public void RemoveFromLayer(UIWindow ui)
         {
             var layer = ui.Setting.Layer;
