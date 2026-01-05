@@ -2,7 +2,7 @@
 
 namespace UniSimple.UI
 {
-    public class UINavigation
+    internal sealed class UINavigation
     {
         public List<UIWindow> Stack { get; } = new(100);
 

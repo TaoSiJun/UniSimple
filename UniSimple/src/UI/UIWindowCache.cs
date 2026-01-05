@@ -3,44 +3,41 @@ using System.Collections.Generic;
 
 namespace UniSimple.UI
 {
-    public class UIWindowCache
+    internal sealed class UIWindowCache
     {
-        private readonly Dictionary<Type, UIWindow> _opened = new(100);
-        private readonly Dictionary<Type, UIWindow> _cached = new(100);
-
-        public Dictionary<Type, UIWindow> Opened => _opened;
-        public Dictionary<Type, UIWindow> Cached => _cached;
+        public Dictionary<Type, UIWindow> Opened { get; } = new(100);
+        public Dictionary<Type, UIWindow> Cached { get; } = new(100);
 
         // ---------- public ----------
 
         public bool TryGetOpened(Type type, out UIWindow window)
         {
-            return InternalTryGet(_opened, type, out window);
+            return InternalTryGet(Opened, type, out window);
         }
 
         public bool TryAddOpened(Type type, UIWindow window)
         {
-            return InternalTryAdd(_opened, type, window);
+            return InternalTryAdd(Opened, type, window);
         }
 
         public bool TryRemoveOpened(Type type, out UIWindow window)
         {
-            return InternalTryRemove(_opened, type, out window);
+            return InternalTryRemove(Opened, type, out window);
         }
 
         public bool TryGetCached(Type type, out UIWindow window)
         {
-            return InternalTryGet(_cached, type, out window);
+            return InternalTryGet(Cached, type, out window);
         }
 
         public bool TryAddCached(Type type, UIWindow window)
         {
-            return InternalTryAdd(_cached, type, window);
+            return InternalTryAdd(Cached, type, window);
         }
 
         public bool TryRemoveCached(Type type, out UIWindow window)
         {
-            return InternalTryRemove(_cached, type, out window);
+            return InternalTryRemove(Cached, type, out window);
         }
 
         // ---------- Internal ----------

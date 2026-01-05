@@ -2,7 +2,7 @@
 
 namespace UniSimple.UI
 {
-    public class UILayerController
+    internal sealed class UILayerController
     {
         private readonly Dictionary<UILayer, List<UIWindow>> _layers = new();
 

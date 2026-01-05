@@ -8,34 +8,43 @@ using Object = UnityEngine.Object;
 
 namespace UniSimple.UI
 {
-    public class UIAssetLoader
+    internal sealed class UIAssetLoader
     {
-        private readonly Dictionary<Type, AssetHandle> _handles = new();
-        private readonly Dictionary<Type, UniTask<UIWindow>> _loading = new();
+        private readonly Dictionary<UIBase, AssetHandle> _handle = new();
+        private readonly Dictionary<Type, UniTask<UIBase>> _loading = new();
         private readonly Dictionary<Type, CancellationTokenSource> _cancelTokenSource = new();
-        private readonly Dictionary<string, Stack<GameObject>> _pool = new();
+        private readonly Dictionary<Type, Stack<UIBase>> _pool = new();
 
-        public async UniTask<T> GetOrCreateAsync<T>(Type type) where T : UIWindow, new()
+        private static GameObject _root;
+
+        public async UniTask<T> GetOrCreateAsync<T>() where T : UIBase, new()
         {
-            // 先检查有没有加载任务
+            var type = typeof(T);
+
+            // 先从池中获取
+            var newUI = InternalGet(type);
+            if (newUI != null)
+            {
+                newUI.GameObject.SetActive(true);
+                return (T)newUI;
+            }
+
+            // 检查并发加载
             if (_loading.TryGetValue(type, out var loading))
             {
                 return await loading as T;
             }
 
-            T newWindow = null;
-
-            // 创建取消
+            // 创建加载任务
             var cts = new CancellationTokenSource();
             _cancelTokenSource[type] = cts;
 
-            // 创建加载任务
             var task = InternalCreateAsync<T>(cts.Token);
             _loading[type] = task;
 
             try
             {
-                newWindow = await task as T;
+                newUI = await task as T;
             }
             catch (OperationCanceledException)
             {
@@ -53,7 +62,7 @@ namespace UniSimple.UI
                 _loading.Remove(type);
             }
 
-            return newWindow;
+            return (T)newUI;
         }
 
         public bool TryCancelLoading(Type type)
@@ -67,41 +76,95 @@ namespace UniSimple.UI
             return false;
         }
 
-        public void Recycle(UIWindow window)
+        public void Recycle(UIBase ui)
         {
+            if (ui == null || ui.GameObject == null) return;
+
+            var type = ui.GetType();
+            if (!_pool.TryGetValue(type, out var stack))
+            {
+                stack = new Stack<UIBase>(2000);
+                _pool[type] = stack;
+            }
+
+            if (stack.Count < 2000)
+            {
+                stack.Push(ui);
+                ui.GameObject.SetActive(false);
+                ui.Transform.SetParent(_root.transform, false); // 归还到回收节点
+            }
+            else
+            {
+                // 池子满了直接销毁
+                Destroy(ui);
+            }
         }
 
-        public void Destroy(UIWindow window)
+        public void Destroy(UIBase ui)
         {
-            var type = window.GetType();
-            _handles[type].Release();
-            _handles.Remove(type);
-            Object.Destroy(window.GameObject);
-            window.InternalDestroy();
+            if (ui == null) return;
+
+            if (_handle.Remove(ui, out var handle))
+            {
+                handle.Release();
+            }
+
+            ui.InternalDestroy();
+            ui.OnDestroy();
+
+            if (ui.GameObject != null)
+            {
+                Object.Destroy(ui.GameObject);
+            }
         }
 
-        private async UniTask<UIWindow> InternalCreateAsync<TWindow>(CancellationToken token) where TWindow : UIWindow, new()
+        // ---------- Internal ----------
+
+        private UIBase InternalGet(Type type)
         {
-            var window = new TWindow
+            if (_pool.TryGetValue(type, out var stack))
+            {
+                if (stack.Count > 0)
+                {
+                    return stack.Pop();
+                }
+            }
+
+            return null;
+        }
+
+        private async UniTask<UIBase> InternalCreateAsync<T>(CancellationToken token) where T : UIBase, new()
+        {
+            InternalCreateRoot();
+
+            var ui = new T()
             {
                 State = UIState.Loading
             };
-
-            var attr = window.Setting;
-            var handle = YooAssets.LoadAssetAsync<GameObject>(attr.Address);
+            var handle = YooAssets.LoadAssetAsync<GameObject>(ui.Setting.Address);
             await handle.ToUniTask(cancellationToken: token);
             if (handle.Status != EOperationStatus.Succeed)
             {
                 handle.Release();
-                throw new Exception($"Failed to load {window.Setting.Name}.");
+                throw new Exception($"Failed to load {ui.Setting.Address}.");
             }
 
             // 这里只做实例化 GameObject
-            window.GameObject = Object.Instantiate(handle.AssetObject as GameObject);
-            window.InternalCreate();
+            ui.GameObject = Object.Instantiate(handle.AssetObject as GameObject);
+            ui.InternalCreate();
+            ui.OnCreate();
 
-            _handles[typeof(TWindow)] = handle;
-            return window;
+            _handle[ui] = handle;
+            return ui;
+        }
+
+        private static void InternalCreateRoot()
+        {
+            if (_root == null)
+            {
+                _root = new GameObject("UIAssetLoader_Pool");
+                Object.DontDestroyOnLoad(_root);
+            }
         }
     }
 }

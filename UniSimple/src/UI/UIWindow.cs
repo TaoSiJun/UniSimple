@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Reflection;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
@@ -24,20 +23,7 @@ namespace UniSimple.UI
         System // 系统层 (如Debug控制台)
     }
 
-    /// <summary>
-    /// UI 状态
-    /// </summary>
-    public enum UIState
-    {
-        None,
-        Loading,
-        Opening,
-        Opened,
-        Closing,
-        Closed,
-    }
-
-    public abstract class UIWindow
+    public abstract class UIWindow : UIBase
     {
         /// <summary>
         /// 是否模态
@@ -64,31 +50,7 @@ namespace UniSimple.UI
         /// </summary>
         public virtual bool IsFullScreen => false;
 
-        private readonly int _layer = LayerMask.NameToLayer("UI");
-
-        private UISettingAttribute _setting;
-
-        public UISettingAttribute Setting
-        {
-            get
-            {
-                if (_setting == null)
-                    _setting = GetType().GetCustomAttribute<UISettingAttribute>();
-
-                if (_setting == null)
-                    Debug.LogError($"{GetType().Name} missing the 'UISetting'");
-
-                return _setting;
-            }
-        }
-
         internal Action CloseAction { set; get; }
-
-        // ---------- UI GameObject ----------
-
-        public UIState State { get; set; } = UIState.None;
-        public GameObject GameObject { get; set; }
-        public Transform Transform => GameObject?.transform;
         public Canvas Canvas { get; private set; }
         public CanvasGroup CanvasGroup { get; private set; }
         public GraphicRaycaster Raycaster { get; private set; }
@@ -121,27 +83,11 @@ namespace UniSimple.UI
 
         #region 生命周期
 
-        public virtual void OnCreate()
-        {
-        }
-
-        public virtual void OnOpen(UIParam param)
-        {
-        }
-
-        public virtual void OnClose()
-        {
-        }
-
         public virtual void OnResume()
         {
         }
 
         public virtual void OnPause()
-        {
-        }
-
-        public virtual void OnDestroy()
         {
         }
 
@@ -159,12 +105,10 @@ namespace UniSimple.UI
 
         #region 内部方法
 
-        // ---------- 内部方法 ----------
-
-        internal virtual void InternalCreate()
+        internal override void InternalCreate()
         {
             GameObject.name = Setting.Name;
-            GameObject.layer = _layer;
+            GameObject.layer = Layer;
 
             // 处理Canvas
             if (!GameObject.TryGetComponent<Canvas>(out var canvas))
@@ -189,13 +133,6 @@ namespace UniSimple.UI
             {
                 Raycaster = GameObject.AddComponent<GraphicRaycaster>();
             }
-
-            OnCreate();
-        }
-
-        internal void InternalDestroy()
-        {
-            OnDestroy();
         }
 
         #endregion

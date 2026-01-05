@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace UniSimple.UI
 {
-    public class UIModalController
+    internal sealed class UIModalController
     {
         private readonly GameObject _uiRoot;
         private readonly GameObject _mask;

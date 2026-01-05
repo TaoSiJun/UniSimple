@@ -8,7 +8,7 @@ namespace UniSimple.UI
     public class UIManager
     {
         // 负责加载/实例化/销毁
-        private readonly UIAssetLoader _loader;
+        private readonly UIAssetLoader _assetLoader;
 
         // 负责层级/排序
         private readonly UILayerController _layerController;
@@ -33,7 +33,7 @@ namespace UniSimple.UI
 
         public UIManager(GameObject uiRoot, GameObject mask)
         {
-            _loader = new UIAssetLoader();
+            _assetLoader = new UIAssetLoader();
             _layerController = new UILayerController();
             _modalController = new UIModalController(uiRoot, mask);
             _navigation = new UINavigation();
@@ -43,14 +43,19 @@ namespace UniSimple.UI
         /// <summary>
         /// 预加载
         /// </summary>
-        public async UniTask PreloadAsync<T>() where T : UIWindow, new()
+        public async UniTask PreloadAsync<T>(int count = 1) where T : UIBase, new()
         {
-            var type = typeof(T);
-            var window = await _loader.GetOrCreateAsync<T>(type);
-            window.Visible = false;
-            window.Interactable = false;
-            _windowCache.TryAddCached(type, window);
+            var tasks = new List<UniTask<T>>(count);
+            for (var i = 0; i < count; i++)
+            {
+                var task = _assetLoader.GetOrCreateAsync<T>();
+                tasks.Add(task);
+            }
+
+            await UniTask.WhenAll(tasks);
         }
+
+        #region Window
 
         /// <summary>
         /// 打开一个窗口
@@ -70,7 +75,7 @@ namespace UniSimple.UI
             }
             else
             {
-                window = await _loader.GetOrCreateAsync<T>(type);
+                window = await _assetLoader.GetOrCreateAsync<T>();
                 window.CloseAction = () => CloseAsync<T>().Forget();
 
                 if (window is IUpdatable updatable)
@@ -170,7 +175,7 @@ namespace UniSimple.UI
 
         private async UniTask InternalCloseAsync(Type type, bool playAnimation)
         {
-            if (_loader.TryCancelLoading(type))
+            if (_assetLoader.TryCancelLoading(type))
             {
                 return;
             }
@@ -211,7 +216,7 @@ namespace UniSimple.UI
                 // 处理是否销毁
                 if (window.DestroyWhenClose)
                 {
-                    _loader.Destroy(window);
+                    _assetLoader.Destroy(window);
                     window.InternalDestroy();
                 }
                 else
@@ -281,6 +286,9 @@ namespace UniSimple.UI
             return false;
         }
 
+        /// <summary>
+        /// 获取一个窗口
+        /// </summary>
         public T Get<T>() where T : UIWindow
         {
             if (_windowCache.TryGetOpened(typeof(T), out var window))
@@ -306,5 +314,43 @@ namespace UniSimple.UI
 
             return top;
         }
+
+        #endregion
+
+        #region Widget
+
+        public async UniTask<T> CreateWidgetAsync<T>(GameObject owner, UIParam param = null) where T : UIWidget, new()
+        {
+            if (owner == null) throw new ArgumentNullException(nameof(owner));
+
+            var widget = await _assetLoader.GetOrCreateAsync<T>();
+            widget.Transform.SetParent(owner.transform, false);
+            widget.OnOpen(param);
+            widget.State = UIState.Opened;
+
+            // 绑定生命周期
+            widget.Bind(owner);
+            widget.RecycleAction = () => RecycleWidget(widget);
+            return widget;
+        }
+
+        public void RecycleWidget(UIWidget widget)
+        {
+            if (widget == null) return;
+
+            widget.InternalRecycle();
+            widget.OnClose();
+            widget.OnRecycle();
+            widget.State = UIState.Closed;
+
+            _assetLoader.Recycle(widget);
+        }
+
+        public void DestroyWidget(UIWidget widget)
+        {
+            _assetLoader.Destroy(widget);
+        }
+
+        #endregion
     }
 }
