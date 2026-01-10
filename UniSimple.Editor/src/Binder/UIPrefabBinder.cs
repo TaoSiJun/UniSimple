@@ -88,18 +88,18 @@ namespace UniSimple.Editor.Prefab
                     // 生成查找路径
                     var path = GetPath(_targetObj.transform, child);
 
-                    // 生成绑定代码逻辑 (如果是 GameObject 不需要 GetComponent)
-                    if (typeName == "GameObject")
+                    switch (typeName)
                     {
-                        sbBind.AppendLine($"\t\t\t\t{childName} = transform.Find(\"{path}\").gameObject;");
-                    }
-                    else if (typeName == "Transform")
-                    {
-                        sbBind.AppendLine($"\t\t\t\t{childName} = transform.Find(\"{path}\");");
-                    }
-                    else
-                    {
-                        sbBind.AppendLine($"\t\t\t\t{childName} = transform.Find(\"{path}\").GetComponent<{typeName}>();");
+                        // 生成绑定代码逻辑 (如果是 GameObject 不需要 GetComponent)
+                        case "GameObject":
+                            sbBind.AppendLine($"\t\t\t\t{childName} = transform.Find(\"{path}\").gameObject;");
+                            break;
+                        case "Transform":
+                            sbBind.AppendLine($"\t\t\t\t{childName} = transform.Find(\"{path}\");");
+                            break;
+                        default:
+                            sbBind.AppendLine($"\t\t\t\t{childName} = transform.Find(\"{path}\").GetComponent<{typeName}>();");
+                            break;
                     }
                 }
             }
