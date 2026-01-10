@@ -316,7 +316,7 @@ namespace UniSimple.YooAsset
             }
 
             // 按最后访问时间排序
-            candidates.Sort((a, b) => { return a.Value.LastAccessTime.CompareTo(b.Value.LastAccessTime); });
+            candidates.Sort((a, b) => a.Value.LastAccessTime.CompareTo(b.Value.LastAccessTime));
 
             // 清理最久未使用的资源
             var removeCount = Math.Min(candidates.Count, HandleCache.Count - MAX_CACHE_SIZE + 10); // 多清理10个，留出空间

@@ -40,7 +40,7 @@ namespace UniSimple.YooAsset.Example
             {
                 Debug.Log($"需要下载: {downloader.TotalDownloadBytes / 1024.0f / 1024.0f:f2} MB");
 
-                // TODO: 这里可以弹出 UI 让用户确认
+                // 这里可以弹出 UI 让用户确认
                 // yield return ShowConfirmUI();
 
                 // 注册回调来驱动 UI 进度条

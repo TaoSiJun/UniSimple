@@ -10,7 +10,6 @@ namespace UniSimple.UI
     public partial class UIManager
     {
         private readonly UIAssetProvider _assetProvider;
-        private readonly UIPool _pool;
         private readonly UILayerController _layerController;
         private readonly UIModalController _modalController;
 
@@ -22,14 +21,13 @@ namespace UniSimple.UI
 
         public UIManager(IAssetLoader loader, GameObject root, GameObject mask)
         {
-            if (Root == null || Mask == null)
-                throw new InvalidOperationException("");
+            if (loader == null || Root == null || Mask == null)
+                throw new InvalidOperationException();
 
             Root = root;
             Mask = mask;
 
             _assetProvider = new UIAssetProvider(loader);
-            _pool = new UIPool(root);
             _layerController = new UILayerController(root);
             _modalController = new UIModalController(root, mask);
         }
@@ -220,14 +218,6 @@ namespace UniSimple.UI
             }
 
             return false;
-        }
-
-        #endregion
-
-        #region Component
-
-        public async UniTask CreateComponentAsync<T>(UIParam param = null) where T : UIComponent, new()
-        {
         }
 
         #endregion
