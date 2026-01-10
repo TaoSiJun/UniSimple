@@ -7,40 +7,47 @@ using UnityEngine;
 
 namespace UniSimple.Editor.Localization
 {
-    public static class LocalizationKeyGenerator
+    public class LocalizationKeyGenerator : EditorWindow
     {
-        [MenuItem("Tools/Localization/Generate Keys from CSV")]
-        public static void GenerateKeysFromCsv()
+        private const string FILE_NAME = "LocalizationKeys";
+        private string _csvPath = "Assets/Config/Language.csv";
+        private string _outputPath = "Assets/Scripts/Localization";
+
+        [MenuItem("Tools/Generate Keys from CSV")]
+        private static void ShowWindow()
         {
-            // 选择 CSV 文件
-            var csvPath = EditorUtility.OpenFilePanel("Select CSV File", Application.dataPath, "csv");
-            if (string.IsNullOrEmpty(csvPath))
+            GetWindow<LocalizationKeyGenerator>("(本地化语言 Key 生成器)");
+        }
+
+        private void OnEnable()
+        {
+            if (EditorTool.HasKey("LocalizationCsvPath"))
             {
-                Debug.Log("Select operation cancelled");
-                return;
+                _csvPath = EditorTool.GetString("LocalizationCsvPath");
             }
 
-            // 选择输出路径
-            var outputPath = EditorUtility.SaveFilePanel("Save Generated Class", Application.dataPath, "LocalizationKeys", "cs");
-            if (string.IsNullOrEmpty(outputPath))
+            if (EditorTool.HasKey("LocalizationOutputPath"))
             {
-                Debug.Log("Save operation cancelled");
-                return;
-            }
-
-            try
-            {
-                Debug.Log($"Ready to generated: {outputPath}");
-                GenerateClass(csvPath, outputPath);
-                AssetDatabase.Refresh();
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Generation failed: {e.Message}");
+                _outputPath = EditorTool.GetString("LocalizationOutputPath");
             }
         }
 
-        private static void GenerateClass(string csvPath, string outputPath)
+        private void OnGUI()
+        {
+            _csvPath = EditorGUILayout.TextField("CSV文件路径", _csvPath);
+            EditorTool.SetString("LocalizationCsvPath", _csvPath);
+            _outputPath = EditorGUILayout.TextField("输出路径", _outputPath);
+            EditorTool.SetString("LocalizationOutputPath", _outputPath);
+            EditorGUILayout.LabelField("保存文件", FILE_NAME);
+
+            if (GUILayout.Button("生成 C# 脚本", GUILayout.Height(30)))
+            {
+                GenerateClass(_csvPath, _outputPath);
+                AssetDatabase.Refresh();
+            }
+        }
+
+        private void GenerateClass(string csvPath, string outputPath)
         {
             // 读取 CSV 文件
             var lines = File.ReadAllLines(csvPath, Encoding.UTF8);
@@ -89,13 +96,19 @@ namespace UniSimple.Editor.Localization
             sb.AppendLine("}");
 
             // 写入文件
-            File.WriteAllText(outputPath, sb.ToString(), Encoding.UTF8);
+            if (!Directory.Exists(outputPath))
+            {
+                Directory.CreateDirectory(outputPath);
+            }
+
+            var fullPath = Path.Combine(outputPath, FILE_NAME + ".cs");
+            File.WriteAllText(fullPath, sb.ToString(), Encoding.UTF8);
         }
 
         /// <summary>
         /// 从 CSV 行获取第一列
         /// </summary>
-        private static string GetFirstColumn(string csvLine)
+        private string GetFirstColumn(string csvLine)
         {
             // 简单的 CSV 解析，处理引号
             if (csvLine.StartsWith("\""))
@@ -121,7 +134,7 @@ namespace UniSimple.Editor.Localization
         /// <summary>
         /// 将 key 转换为大写下划线格式的常量名
         /// </summary>
-        private static string ConvertToConstName(string key)
+        private string ConvertToConstName(string key)
         {
             // 移除非法字符，只保留字母、数字和下划线
             var cleaned = Regex.Replace(key, "[^a-zA-Z0-9_]", "_");
