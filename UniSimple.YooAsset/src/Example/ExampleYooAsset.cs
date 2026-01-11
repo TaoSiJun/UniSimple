@@ -20,7 +20,7 @@ namespace UniSimple.YooAsset.Example
             };
 
             // 2. 初始化
-            yield return PackageManager.InitializePackage(config);
+            yield return PatchManager.InitializePackage(config);
 
             // 如果是单机或模拟模式
             if (config.PlayMode == EPlayMode.EditorSimulateMode || config.PlayMode == EPlayMode.OfflinePlayMode)
@@ -30,10 +30,10 @@ namespace UniSimple.YooAsset.Example
             }
 
             // 3. (仅联机模式) 检查版本和清单
-            yield return PackageManager.UpdatePackageManifest("DefaultPackage");
+            yield return PatchManager.UpdatePackageManifest("DefaultPackage");
 
             // 4. (仅联机模式) 创建下载器
-            var downloader = PackageManager.CreateDownloader("DefaultPackage");
+            var downloader = PatchManager.CreateDownloader("DefaultPackage");
 
             // 如果有需要下载的文件
             if (downloader.TotalDownloadCount > 0)

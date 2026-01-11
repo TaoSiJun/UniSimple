@@ -5,7 +5,7 @@ using YooAsset;
 
 namespace UniSimple.YooAsset
 {
-    public static class PackageManager
+    public static class PatchManager
     {
         // 管理已加载的包
         private static readonly Dictionary<string, ResourcePackage> Packages = new();
