@@ -8,27 +8,37 @@ namespace UniSimple.Singleton
     /// </summary>
     public static class SingletonManager
     {
-        private static readonly List<ISingleton> AllSingletonList = new();
+        private static readonly List<ISingleton> AllList = new();
         private static readonly List<IUpdatable> UpdatableList = new();
 
         // 标记是否在清理中
         public static bool IsShuttingDown { get; private set; }
+        public static bool IsInitialized { get; private set; }
+
+        public static void Initialize()
+        {
+            if (IsInitialized) return;
+
+            var go = new UnityEngine.GameObject("SingletonDriver");
+            go.AddComponent<SingletonDriver>();
+            IsInitialized = true;
+        }
 
         internal static void Register(ISingleton singleton)
         {
             if (IsShuttingDown)
                 return;
 
-            if (AllSingletonList.Contains(singleton))
+            if (AllList.Contains(singleton))
                 return;
 
-            AllSingletonList.Add(singleton);
-            AllSingletonList.Sort((a, b) => b.Priority.CompareTo(a.Priority));
+            AllList.Add(singleton);
+            AllList.Sort((a, b) => b.Priority.CompareTo(a.Priority));
 
             if (singleton is IUpdatable updatable)
             {
                 UpdatableList.Add(updatable);
-                UpdatableList.Sort((a, b) => (b as ISingleton).Priority.CompareTo((a as ISingleton).Priority));
+                UpdatableList.Sort((a, b) => ((ISingleton)b).Priority.CompareTo(((ISingleton)a).Priority));
             }
         }
 
@@ -45,7 +55,7 @@ namespace UniSimple.Singleton
                 }
                 catch (Exception e)
                 {
-                    UnityEngine.Debug.LogError($"[SingletonManager] Error updating {AllSingletonList[i].GetType().Name}: {e}");
+                    UnityEngine.Debug.LogError($"[SingletonManager] Error updating {AllList[i].GetType().Name}: {e}");
                 }
             }
         }
@@ -54,21 +64,22 @@ namespace UniSimple.Singleton
         {
             IsShuttingDown = true;
 
-            for (var i = AllSingletonList.Count - 1; i >= 0; i--)
+            for (var i = AllList.Count - 1; i >= 0; i--)
             {
                 try
                 {
-                    AllSingletonList[i].OnDestroy();
+                    AllList[i].OnDestroy();
                 }
                 catch (Exception e)
                 {
-                    UnityEngine.Debug.LogError($"[SingletonManager] Error destroying {AllSingletonList[i].GetType().Name}: {e}");
+                    UnityEngine.Debug.LogError($"[SingletonManager] Error destroying {AllList[i].GetType().Name}: {e}");
                 }
             }
 
-            AllSingletonList.Clear();
+            AllList.Clear();
             UpdatableList.Clear();
             IsShuttingDown = false;
+            IsInitialized = false;
         }
     }
 }

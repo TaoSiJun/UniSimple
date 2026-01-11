@@ -8,10 +8,6 @@
 
         void OnDestroy();
 
-        /// <summary>
-        /// 优先级
-        /// 越大越先 Update 越后 Destroy
-        /// </summary>
         int Priority { get; }
     }
 
@@ -52,6 +48,11 @@
             }
         }
 
+        /// <summary>
+        /// 优先级
+        /// 越大越先 Update
+        /// 越后 Destroy
+        /// </summary>
         public virtual int Priority => 0;
 
         public virtual void OnCreate()
