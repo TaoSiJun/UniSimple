@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace UniSimple.Machine
+namespace UniSimple.HSM
 {
     public sealed class StateMachineBuilder
     {

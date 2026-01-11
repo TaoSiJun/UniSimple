@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace UniSimple.Machine
+namespace UniSimple.HSM
 {
     public interface IState
     {
