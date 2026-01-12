@@ -10,13 +10,13 @@ namespace UniSimple.Network.Http
 {
     public class SimpleHttpException : Exception
     {
-        public long StatusCode { get; }
-        public string ResponseBody { get; }
+        public long Code { get; }
+        public string Body { get; }
 
-        public SimpleHttpException(string message, long statusCode, string responseBody) : base(message)
+        public SimpleHttpException(string message, long code, string body) : base(message)
         {
-            StatusCode = statusCode;
-            ResponseBody = responseBody;
+            Code = code;
+            Body = body;
         }
     }
 

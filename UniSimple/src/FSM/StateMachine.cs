@@ -8,7 +8,7 @@ namespace UniSimple.FSM
         private readonly Dictionary<Type, IState> _cache = new();
         private readonly Stack<IState> _stack = new();
 
-        public IState CurrentState { get; private set; }
+        public IState CurrentState => _stack.Count > 0 ? _stack.Peek() : null;
 
         private T GetOrCreateState<T>() where T : IState, new()
         {
@@ -27,9 +27,15 @@ namespace UniSimple.FSM
 
         public void Update()
         {
-            CurrentState?.OnUpdate();
+            if (_stack.Count > 0)
+            {
+                _stack.Peek().OnUpdate();
+            }
         }
 
+        /// <summary>
+        /// 改变状态
+        /// </summary>
         public void ChangeState<T>(object args = null) where T : IState, new()
         {
             while (_stack.Count > 0)
@@ -40,10 +46,12 @@ namespace UniSimple.FSM
 
             var newState = GetOrCreateState<T>();
             _stack.Push(newState);
-            CurrentState = newState;
-            CurrentState.OnEnter(args);
+            newState.OnEnter(args);
         }
 
+        /// <summary>
+        /// 入栈
+        /// </summary>
         public void PushState<T>(object args = null) where T : IState, new()
         {
             if (_stack.Count > 0)
@@ -54,22 +62,24 @@ namespace UniSimple.FSM
 
             var newState = GetOrCreateState<T>();
             _stack.Push(newState);
-            CurrentState = newState;
-            CurrentState.OnEnter(args);
+            newState.OnEnter(args);
         }
 
+        /// <summary>
+        /// 出栈
+        /// </summary>
         public void PopState()
         {
-            if (_stack.Count <= 0) return;
-
-            var topState = _stack.Pop();
-            topState.OnExit();
-
             if (_stack.Count > 0)
             {
-                var previousState = _stack.Peek();
-                CurrentState = previousState;
-                CurrentState.OnResume();
+                var currentState = _stack.Pop();
+                currentState.OnExit();
+
+                if (_stack.Count > 0)
+                {
+                    var previousState = _stack.Peek();
+                    previousState.OnResume();
+                }
             }
         }
     }

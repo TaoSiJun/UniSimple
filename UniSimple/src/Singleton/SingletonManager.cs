@@ -13,12 +13,12 @@ namespace UniSimple.Singleton
 
         // 标记是否在清理中
         public static bool IsShuttingDown { get; private set; }
-        public static bool IsInitialized { get; private set; }
 
-        public static void Initialize()
+        // 初始化Driver
+        private static bool IsInitialized { get; set; }
+
+        private static void Initialize()
         {
-            if (IsInitialized) return;
-
             var go = new UnityEngine.GameObject("SingletonDriver");
             go.AddComponent<SingletonDriver>();
             IsInitialized = true;
@@ -26,11 +26,11 @@ namespace UniSimple.Singleton
 
         internal static void Register(ISingleton singleton)
         {
-            if (IsShuttingDown)
-                return;
+            if (IsShuttingDown) return;
 
-            if (AllList.Contains(singleton))
-                return;
+            if (!IsInitialized) Initialize();
+
+            if (AllList.Contains(singleton)) return;
 
             AllList.Add(singleton);
             AllList.Sort((a, b) => b.Priority.CompareTo(a.Priority));
@@ -44,8 +44,7 @@ namespace UniSimple.Singleton
 
         internal static void Update(float deltaTime)
         {
-            if (IsShuttingDown)
-                return;
+            if (IsShuttingDown) return;
 
             for (var i = 0; i < UpdatableList.Count; i++)
             {
